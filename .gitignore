@@ -1,0 +1,8 @@
+runs/
+smoke/
+data/
+wandb/
+.fault
+__pycache__/
+*.egg-info/
+.pytest_cache/

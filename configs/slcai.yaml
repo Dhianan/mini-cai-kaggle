@@ -1,0 +1,13 @@
+# Day 2: re-SFT on critique->revision data mixed with helpful data.
+inherit: sft.yaml
+stage: slcai
+run_name: slcai
+out_dir: runs/slcai
+model:
+  init: runs/sft/final
+data:
+  train: data/slcai_train.jsonl
+train:
+  lr: 1.0e-5
+  epochs: 2
+  warmup: 20

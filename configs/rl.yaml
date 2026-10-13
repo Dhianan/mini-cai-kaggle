@@ -1,0 +1,38 @@
+# Day 4: GRPO against the reward model. Single GPU.
+stage: rl
+run_name: rl
+out_dir: runs/rl
+guardrails: true
+max_len: 1024
+model:
+  init: runs/slcai/final         # or runs/dpo/final to stack RL on DPO
+  ref: runs/slcai/final
+reward_model: runs/rm/final
+data:
+  prompts: [data/redteam_train.jsonl, data/helpful_train.jsonl]
+  limit_each: null
+gen:
+  max_new_tokens: 256
+  temperature: 1.0
+  top_p: 1.0
+  batch_size: 64
+train:
+  seed: 0
+  lr: 1.0e-6
+  steps: 200
+  prompts_per_step: 8
+  group_size: 8                  # 64 rollouts per step
+  ppo_epochs: 1
+  micro_batch: 8
+  clip: 0.2
+  kl_coef: 0.05
+  kl_stop: 1.0                   # stop if mean per-token k3 KL exceeds this
+  entropy_floor: 0.05
+  length_penalty: 0.0            # per-token; raise it when you catch length hacking
+  truncation_penalty: 0.0        # subtract for never-ending responses
+  scale_adv: true                # false = Dr.GRPO-style (no std normalisation)
+  grad_clip: 1.0
+  gradient_checkpointing: true
+  weight_decay: 0.0
+  sample_every: 10
+  save_every: 100

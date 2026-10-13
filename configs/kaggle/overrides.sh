@@ -1,0 +1,18 @@
+# Free-tier profile: Kaggle / Colab T4 (16 GB, fp16 only) or P100.
+# Policy Qwen2.5-0.5B base, judge/critic/labeler Qwen2.5-3B-Instruct. Sourced by scripts/kaggle.sh.
+# Same code, losses, guardrails and drills as the A100 profile; only scale and precision change.
+
+POLICY=Qwen/Qwen2.5-0.5B
+JUDGE=Qwen/Qwen2.5-3B-Instruct
+
+# T4 fp16 dense peak ~65 TFLOPs (used only for the MFU number in logs)
+K_TRAIN="train.batch_size=4 train.grad_accum=8 train.gradient_checkpointing=true train.peak_tflops=65"
+
+K_SFT="model.init=$POLICY data.max_len=768 $K_TRAIN"
+K_SLCAI="data.max_len=768 $K_TRAIN"
+K_CRITIC="critic.model=$JUDGE critic.batch_size=16 data.limit=1500 gen.batch_size=32"
+K_LABEL="labeler.model=$JUDGE labeler.batch_size=16 data.limit_each=1200 gen.batch_size=32"
+K_RM="data.max_len=768 train.batch_size=4 train.grad_accum=4 train.gradient_checkpointing=true"
+K_DPO="data.max_len=768 train.batch_size=2 train.grad_accum=16 train.peak_tflops=65"
+K_RL="max_len=768 gen.batch_size=32 gen.max_new_tokens=192 train.micro_batch=4 train.steps=150"
+K_EVAL="judge.model=$JUDGE judge.batch_size=16 gen.batch_size=32 gen.max_new_tokens=320 data.limit=200 data.capability_limit=300"

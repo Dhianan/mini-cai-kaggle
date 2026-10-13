@@ -1,0 +1,26 @@
+# Day 3: Bradley-Terry reward model initialised from SL-CAI.
+stage: rm
+run_name: rm
+out_dir: runs/rm
+guardrails: true
+model:
+  init: runs/slcai/final
+  dtype: fp32
+data:
+  train: data/prefs_train.jsonl
+  eval: data/prefs_eval.jsonl
+  max_len: 1024
+train:
+  seed: 0
+  lr: 5.0e-6
+  warmup: 20
+  batch_size: 8                  # pairs per step (16 sequences)
+  grad_accum: 2
+  epochs: 1
+  max_steps: null
+  grad_clip: 1.0
+  center_coef: 0.01
+  mixed_precision: bf16
+  gradient_checkpointing: false
+  log_every: 10
+  eval_every: 100

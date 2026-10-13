@@ -1,0 +1,31 @@
+# Day 3: AI-labelled preference pairs (RLAIF).
+stage: label_prefs
+seed: 0
+guardrails: true
+constitution: constitution.yaml
+model:
+  init: runs/slcai/final         # policy that generates the response pairs
+labeler:
+  kind: hf                       # self | hf | anthropic
+  model: Qwen/Qwen2.5-7B-Instruct
+  dtype: bf16
+  batch_size: 16
+data:
+  harmless_prompts: data/redteam_train.jsonl
+  helpful_prompts: data/helpful_train.jsonl
+  limit_each: 2500
+  eval_frac: 0.1
+agreement:
+  sanity: data/labeler_sanity.jsonl
+  human_pairs: data/hh_pairs_eval.jsonl
+  limit: 200
+sanity_min_acc: 0.8
+drop_inconsistent: true          # drop pairs whose verdict flips when A/B are swapped
+min_confidence: 0.1              # require |P(A) - 0.5| >= this
+gen:
+  max_new_tokens: 256
+  temperature: 1.0
+  top_p: 1.0
+  batch_size: 32
+out:
+  dir: data

@@ -1,0 +1,32 @@
+# Day 4: DPO from SL-CAI on the AI-labelled pairs. Sweep beta in {0.05, 0.1, 0.5}.
+stage: dpo
+run_name: dpo
+out_dir: runs/dpo
+guardrails: true
+beta: 0.1
+label_smoothing: 0.0             # >0 = conservative DPO for noisy labels
+length_normalize: false          # true = average log-probs (reduces length exploitation)
+model:
+  init: runs/slcai/final
+  ref: runs/slcai/final
+  dtype: fp32
+  ref_dtype: auto
+data:
+  train: data/prefs_train.jsonl
+  eval: data/prefs_eval.jsonl
+  max_len: 1024
+train:
+  seed: 0
+  lr: 5.0e-7
+  warmup: 20
+  batch_size: 4                  # pairs per micro-batch
+  grad_accum: 8
+  epochs: 1
+  max_steps: null
+  grad_clip: 1.0
+  mixed_precision: bf16
+  gradient_checkpointing: true
+  log_every: 10
+  eval_every: 100
+  save_every: 200
+  peak_tflops: 989

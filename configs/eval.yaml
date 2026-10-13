@@ -1,0 +1,25 @@
+# Run after EVERY stage. Pass model=runs/<stage>/final.
+# For comparability, use the SFT model's generations as the reference:
+#   python -m minicai.evals --config configs/eval.yaml model=runs/sft/final reference=runs/sft/final/eval_generations.jsonl
+seed: 0
+model: runs/sft/final
+reference: runs/sft/final/eval_generations.jsonl
+out_dir: null                    # default: write next to the model
+judge:
+  kind: hf                       # hf | anthropic | self
+  model: Qwen/Qwen2.5-7B-Instruct
+  dtype: bf16
+  batch_size: 16
+data:
+  helpful: data/helpful_eval.jsonl
+  redteam: data/redteam_eval.jsonl
+  overrefusal: data/overrefusal_eval.jsonl
+  capability: data/capability_eval.jsonl
+  limit: 300
+  capability_limit: 500
+gen:
+  greedy: true
+  max_new_tokens: 384
+  batch_size: 32
+train_files: [data/sft_train.jsonl]   # contamination check
+ngram: 8

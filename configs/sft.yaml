@@ -1,0 +1,35 @@
+# Day 1: SFT the base model. 1x H100/A100 80GB, ~1.5-2h for 2 epochs on 10k examples.
+stage: sft
+run_name: sft
+out_dir: runs/sft
+guardrails: true
+model:
+  init: Qwen/Qwen2.5-1.5B        # BASE model, not -Instruct
+  dtype: fp32                    # fp32 master weights + bf16 autocast
+data:
+  train: data/sft_train.jsonl
+  eval: data/sft_eval.jsonl
+  max_len: 1024
+  limit: null
+  eval_limit: 200
+  pack: false
+train:
+  seed: 0
+  lr: 2.0e-5
+  min_lr_ratio: 0.1
+  warmup: 30
+  weight_decay: 0.0
+  batch_size: 8
+  grad_accum: 4                  # effective batch 32 sequences
+  epochs: 2
+  max_steps: null
+  grad_clip: 1.0
+  mixed_precision: bf16
+  gradient_checkpointing: false
+  log_every: 10
+  eval_every: 100
+  save_every: 200
+  peak_tflops: 989               # H100 SXM bf16 dense; A100 = 312. Used for MFU.
+wandb:
+  enabled: false
+  project: mini-cai

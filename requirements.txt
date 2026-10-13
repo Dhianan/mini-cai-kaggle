@@ -1,0 +1,12 @@
+torch>=2.4
+transformers>=4.46
+accelerate>=1.0
+datasets>=3.0
+tokenizers>=0.20
+safetensors
+pyyaml
+pytest
+# optional
+trl              # Day 1/4 library comparison
+wandb            # experiment tracking (set wandb.enabled=true)
+anthropic        # judge/critic/labeler via API (kind: anthropic)
