@@ -1,6 +1,6 @@
 """Day 1 check: does the hand-written SFT loop learn like TRL's?
 
-    python scripts/compare_trl.py runs/sft runs/sft_trl --grad-accum 8
+    python scripts/compare_trl.py runs/sft runs/sft_trl --grad-accum 16
 
 Ours logs one micro-batch loss every `log_every` micro-steps; TRL logs the mean loss per optimizer
 step. We convert our steps to optimizer steps and average both into windows of 20 optimizer steps.

@@ -8,6 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source configs/kaggle/overrides.sh
 export PYTHONPATH=src
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True   # less fragmentation on 15 GB T4s
 EVAL="python -m minicai.evals --config configs/eval.yaml $K_EVAL"
 
 case "${1:-}" in
@@ -22,6 +23,10 @@ case "${1:-}" in
   day1)
     [[ -f data/manifest.json ]] || python -m minicai.build_data --source hf
     cat data/manifest.json
+    if grep -q '"overrefusal_eval": 0' data/manifest.json; then
+      echo "[day1] STOP: overrefusal_eval is empty. Accept the terms at huggingface.co/datasets/walledai/XSTest,"
+      echo "       then: rm data/manifest.json and rerun day1."; exit 1
+    fi
     python -m minicai.sft --config configs/sft.yaml $K_SFT
     $EVAL model=runs/sft/final
     python -m minicai.report
@@ -29,7 +34,7 @@ case "${1:-}" in
   day1-trl)
     # Library cross-check: same data/LR/batch, 200 steps. Compare with runs/sft/metrics.jsonl.
     python -m minicai.trl_reference sft --config configs/sft.yaml $K_SFT train.max_steps=200 out_dir=runs/sft_trl
-    python scripts/compare_trl.py runs/sft runs/sft_trl --grad-accum 8
+    python scripts/compare_trl.py runs/sft runs/sft_trl --grad-accum 16
     ;;
   day2)
     python -m minicai.cai_revise --config configs/cai_revise.yaml $K_CRITIC

@@ -6,7 +6,9 @@ POLICY=Qwen/Qwen2.5-0.5B
 JUDGE=Qwen/Qwen2.5-3B-Instruct
 
 # T4 fp16 dense peak ~65 TFLOPs (used only for the MFU number in logs)
-K_TRAIN="train.batch_size=4 train.grad_accum=8 train.gradient_checkpointing=true train.peak_tflops=65"
+# batch 2 x accum 16 = same effective batch (32). Qwen's 152k-token vocabulary makes the logits the
+# biggest activation: batch 4 x 768 tokens x 152k x fp32 is ~1.9 GB before its gradient, and that OOMs a T4.
+K_TRAIN="train.batch_size=2 train.grad_accum=16 train.gradient_checkpointing=true train.peak_tflops=65"
 
 K_SFT="model.init=$POLICY data.max_len=768 $K_TRAIN"
 K_SLCAI="data.max_len=768 $K_TRAIN"
