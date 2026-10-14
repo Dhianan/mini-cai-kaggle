@@ -31,6 +31,17 @@ case "${1:-}" in
     $EVAL model=runs/sft/final
     python -m minicai.report
     ;;
+  judge-check)
+    # Day 1 follow-up: test the harm judge against human labels (3B vs 7B in 4-bit). ~20 min GPU.
+    pip install -q bitsandbytes
+    python scripts/judge_check.py $JUDGE
+    python scripts/judge_check.py Qwen/Qwen2.5-7B-Instruct --4bit
+    ;;
+  eval-sft)
+    # Re-run only the SFT evaluation (no retraining), e.g. after changing eval decoding or the judge.
+    $EVAL model=runs/sft/final
+    python -m minicai.report
+    ;;
   day1-trl)
     # Library cross-check: same data/LR/batch, 200 steps. Compare with runs/sft/metrics.jsonl.
     python -m minicai.trl_reference sft --config configs/sft.yaml $K_SFT train.max_steps=200 out_dir=runs/sft_trl

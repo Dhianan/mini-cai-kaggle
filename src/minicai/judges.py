@@ -46,7 +46,8 @@ class Judge:
             self.model, self.tok = policy, tok
         elif self.kind == "hf":
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            self.model, self.tok = load_policy(cfg["model"], dtype=cfg.get("dtype", "auto"), device=device)
+            self.model, self.tok = load_policy(cfg["model"], dtype=cfg.get("dtype", "auto"), device=device,
+                                               load_in_4bit=bool(cfg.get("load_in_4bit", False)))
             self.model.eval()
         elif self.kind == "anthropic":
             import anthropic  # pip install anthropic

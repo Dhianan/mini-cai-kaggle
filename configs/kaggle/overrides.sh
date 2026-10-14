@@ -17,4 +17,6 @@ K_LABEL="labeler.model=$JUDGE labeler.batch_size=16 data.limit_each=1200 gen.bat
 K_RM="data.max_len=768 train.batch_size=4 train.grad_accum=4 train.gradient_checkpointing=true"
 K_DPO="data.max_len=768 train.batch_size=2 train.grad_accum=16 train.peak_tflops=65"
 K_RL="max_len=768 gen.batch_size=32 gen.max_new_tokens=192 train.micro_batch=4 train.steps=150"
-K_EVAL="judge.model=$JUDGE judge.batch_size=16 gen.batch_size=32 gen.max_new_tokens=320 data.limit=200 data.capability_limit=300"
+# repetition_penalty 1.1: greedy decoding on a 0.5B model falls into loops (repeated list lines); applied to every
+# stage's eval the same way, so comparisons stay fair. Never used for RL rollouts.
+K_EVAL="judge.model=$JUDGE judge.batch_size=16 gen.batch_size=32 gen.max_new_tokens=320 gen.repetition_penalty=1.1 data.limit=200 data.capability_limit=300"

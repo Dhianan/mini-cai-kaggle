@@ -96,7 +96,7 @@ def load_tokenizer(path: str):
     return tok
 
 
-def load_policy(name_or_path: str, dtype: str | None = "fp32", device: str | None = None):
+def load_policy(name_or_path: str, dtype: str | None = "fp32", device: str | None = None, load_in_4bit: bool = False):
     """Causal LM + tokenizer. Train in fp32 master weights with bf16 autocast
     (accelerate mixed_precision=bf16); load frozen models (ref, judge) in bf16."""
     from transformers import AutoModelForCausalLM
@@ -106,9 +106,14 @@ def load_policy(name_or_path: str, dtype: str | None = "fp32", device: str | Non
     kwargs = {"dtype": _dtype(dtype)}
     if torch.cuda.is_available():
         kwargs["attn_implementation"] = "sdpa"
+    if load_in_4bit:  # frozen judges only: a 7B judge in ~5.5 GB on a 16 GB T4 (pip install bitsandbytes)
+        from transformers import BitsAndBytesConfig
+        kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                                                           bnb_4bit_compute_dtype=_dtype(dtype))
+        kwargs["device_map"] = {"": 0}
     model = AutoModelForCausalLM.from_pretrained(path, **kwargs)
     model.config.pad_token_id = tok.pad_token_id
-    if device:
+    if device and not load_in_4bit:
         model.to(device)
     return model, tok
 
@@ -207,7 +212,7 @@ class RewardModel(nn.Module):
 @torch.no_grad()
 def generate(model, tok, prompts: list[list[dict]], max_new_tokens: int = 256, temperature: float = 0.7,
              top_p: float = 0.95, top_k: int = 0, batch_size: int = 16, greedy: bool = False,
-             num_return_sequences: int = 1) -> list[dict]:
+             num_return_sequences: int = 1, repetition_penalty: float = 1.0) -> list[dict]:
     """Batched sampling. Returns one dict per (prompt, sample):
     {prompt_idx, text, token_ids, n_tokens, hit_max}. Left padding is required
     for decoder-only batched generation; fault `padding_right` breaks that."""
@@ -226,6 +231,8 @@ def generate(model, tok, prompts: list[list[dict]], max_new_tokens: int = 256, t
             enc = tok(texts, return_tensors="pt", padding=True, add_special_tokens=False).to(device)
             gen_kwargs = dict(max_new_tokens=max_new_tokens, eos_token_id=stops, pad_token_id=tok.pad_token_id,
                               num_return_sequences=num_return_sequences)
+            if repetition_penalty != 1.0:  # eval-time decoding only; never used for RL rollouts
+                gen_kwargs.update(repetition_penalty=repetition_penalty)
             if greedy:
                 gen_kwargs.update(do_sample=False)
             else:
