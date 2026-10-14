@@ -16,7 +16,7 @@ case "${1:-}" in
     nvidia-smi
     pip install -q -r requirements.txt && pip install -q -U "transformers>=4.56" trl && pip install -q -e .
     python -c "import torch;print('GPUs:',torch.cuda.device_count(),torch.cuda.get_device_name(0),'cc',torch.cuda.get_device_capability())"
-    python -c "from huggingface_hub import snapshot_download as s; [s(m) for m in ['$POLICY','$JUDGE']]"
+    python -c "from huggingface_hub import snapshot_download as s; [s(m) for m in ['$POLICY','$JUDGE','$GUARD']]"
     if [[ -n "${HF_REPO:-}" ]]; then python scripts/hf_sync.py pull || echo "[setup] nothing to pull yet"; fi
     python -m pytest -q
     ;;
@@ -32,10 +32,11 @@ case "${1:-}" in
     python -m minicai.report
     ;;
   judge-check)
-    # Day 1 follow-up: test the harm judge against human labels (3B vs 7B in 4-bit). ~20 min GPU.
+    # Test harm judges against human safe/unsafe labels (BeaverTails) before trusting harmless_rate. ~30 min GPU.
     pip install -q bitsandbytes
-    python scripts/judge_check.py $JUDGE
     python scripts/judge_check.py Qwen/Qwen2.5-7B-Instruct --4bit
+    python scripts/judge_check.py $GUARD --guard
+    python scripts/judge_check.py Qwen/Qwen3Guard-Gen-0.6B --guard
     ;;
   eval-sft)
     # Re-run only the SFT evaluation (no retraining), e.g. after changing eval decoding or the judge.
@@ -44,7 +45,8 @@ case "${1:-}" in
     ;;
   day1-trl)
     # Library cross-check: same data/LR/batch, 200 steps. Compare with runs/sft/metrics.jsonl.
-    python -m minicai.trl_reference sft --config configs/sft.yaml $K_SFT train.max_steps=200 out_dir=runs/sft_trl
+    # TRL refuses DataParallel when 2 GPUs are visible; one GPU is the fair comparison anyway.
+    CUDA_VISIBLE_DEVICES=0 python -m minicai.trl_reference sft --config configs/sft.yaml $K_SFT train.max_steps=200 out_dir=runs/sft_trl
     python scripts/compare_trl.py runs/sft runs/sft_trl --grad-accum 16
     ;;
   day2)

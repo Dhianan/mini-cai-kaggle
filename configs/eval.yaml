@@ -10,6 +10,9 @@ judge:
   model: Qwen/Qwen2.5-7B-Instruct
   dtype: bf16
   batch_size: 16
+guard:                           # optional safety classifier for harm + refusal metrics (src/minicai/guard.py)
+  model: null                    # e.g. Qwen/Qwen3Guard-Gen-4B; null = use the judge's Yes/No question
+  batch_size: 16
 data:
   helpful: data/helpful_eval.jsonl
   redteam: data/redteam_eval.jsonl
