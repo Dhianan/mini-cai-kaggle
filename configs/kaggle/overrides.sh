@@ -6,7 +6,7 @@ POLICY=Qwen/Qwen2.5-0.5B
 JUDGE=Qwen/Qwen2.5-3B-Instruct
 # Harm + refusal metrics: a purpose-built safety classifier. Day 1: the 3B and 7B judges flagged 0-3% of
 # human-rejected replies and ranked pairs near a coin flip (scripts/judge_check.py). Sits on GPU 1.
-GUARD=Qwen/Qwen3Guard-Gen-4B
+GUARD=Qwen/Qwen3Guard-Gen-0.6B   # BeaverTails check: recall .82, false-pos .18, AUROC .83 (4B: .84/.22/.83, same within noise)
 
 # T4 fp16 dense peak ~65 TFLOPs (used only for the MFU number in logs)
 # batch 2 x accum 16 = same effective batch (32). Qwen's 152k-token vocabulary makes the logits the

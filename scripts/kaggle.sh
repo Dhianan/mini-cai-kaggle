@@ -31,11 +31,31 @@ case "${1:-}" in
     $EVAL model=runs/sft/final
     python -m minicai.report
     ;;
+  doctor)
+    # Is this session running the NEW code? Run right after setup. Every line must say OK.
+    git log -1 --oneline
+    ok() { if eval "$2" >/dev/null 2>&1; then echo "OK    $1"; else echo "FAIL  $1"; BAD=1; fi; }
+    BAD=0
+    ok "guard.py exists"                    "test -f src/minicai/guard.py"
+    ok "evals.py uses the guard"            "grep -q 'Guard' src/minicai/evals.py"
+    ok "eval.yaml has a guard block"        "grep -q '^guard' configs/eval.yaml"
+    ok "GUARD is Qwen3Guard-Gen-0.6B"       "grep -q '^GUARD=Qwen/Qwen3Guard-Gen-0.6B' configs/kaggle/overrides.sh"
+    ok "day1-trl pinned to one GPU"         "grep -q 'CUDA_VISIBLE_DEVICES=0' scripts/kaggle.sh"
+    ok "judge_check.py has --guard"         "grep -q -- '--guard' scripts/judge_check.py"
+    ok "HF_TOKEN and HF_REPO set"           "test -n \"\${HF_TOKEN:-}\" -a -n \"\${HF_REPO:-}\""
+    [[ $BAD == 0 ]] && echo "ALL OK" || { echo "STOP: fix the FAIL lines before running anything"; exit 1; }
+    ;;
+  clean-day1)
+    # Delete Day 1 evaluation leftovers (keeps data/ and the trained SFT checkpoint).
+    rm -fv runs/sft/final/eval_results.json runs/sft/final/eval_generations.jsonl
+    rm -rfv runs/sft_trl runs/report* 2>/dev/null | tail -3
+    ls runs/sft/final | head
+    ;;
   judge-check)
     # Test harm judges against human safe/unsafe labels (BeaverTails) before trusting harmless_rate. ~30 min GPU.
     pip install -q bitsandbytes
     python scripts/judge_check.py Qwen/Qwen2.5-7B-Instruct --4bit
-    python scripts/judge_check.py $GUARD --guard
+    python scripts/judge_check.py $GUARD --guard   # GUARD = the one in overrides.sh
     python scripts/judge_check.py Qwen/Qwen3Guard-Gen-0.6B --guard
     ;;
   eval-sft)
