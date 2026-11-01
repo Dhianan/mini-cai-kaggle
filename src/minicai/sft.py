@@ -89,6 +89,7 @@ def main() -> None:
               f"{n_params/1e6:.1f}M params, world={world}")
     model.train()
     last_loss = float("nan")
+    win_sum, win_n = 0.0, 0   # mean of every micro-batch since the last log line (not one noisy micro-batch)
     for step, global_batch in batches(examples, bs * world, shuffle=True, seed=t.get("seed", 0),
                                       epochs=t.get("epochs", 1), start_step=start):
         if step >= total_micro:
@@ -109,12 +110,14 @@ def main() -> None:
             optimizer.zero_grad(set_to_none=True)
         tp.add(int(b["attention_mask"].sum()))
         last_loss = loss.item()
+        win_sum, win_n = win_sum + last_loss, win_n + 1
         if not torch.isfinite(loss):
             log.log(step, event="nan_loss", loss=last_loss)
             raise SystemExit("Loss is not finite; inspect metrics.jsonl around this step.")
         if (step + 1) % t.get("log_every", 10) == 0:
-            log.log(step + 1, loss=last_loss, lr=scheduler.get_last_lr()[0],
+            log.log(step + 1, loss=win_sum / max(1, win_n), lr=scheduler.get_last_lr()[0],
                     grad_norm=float(gnorm) if gnorm is not None else None, **tp.read())
+            win_sum, win_n = 0.0, 0
         if eval_examples and (step + 1) % t.get("eval_every", 200) == 0:
             log.log(step + 1, eval_loss=eval_loss(model, eval_examples, tok, bs, acc))
         if (step + 1) % t.get("save_every", 500) == 0:
